@@ -45,7 +45,7 @@ const HERO_POSES = {
   walk: (n) => seq(n, (t) => ({ dx: 2 * sin(t), dy: -4 * Math.abs(Math.sin(Math.PI * t)), rot: 2 * sin(t) })),
   run: (n) => seq(n, (t) => ({ dx: 3 * sin(t), dy: -7 * Math.abs(Math.sin(Math.PI * t)), rot: 7 + 2 * sin(t), sx: 1.03, sy: 0.98 })),
   // Small offsets only: the real attack-pose art carries the lunge, and larger shifts clip the 160px cell.
-  attack: () => keyed({ dx: [0, -3, 3, 8, 2, 0], rot: [0, -3, 2, 5, 2, 0] }, 6),
+  attack: () => keyed({ dx: [0, -2, 3, 8, 2, 0], rot: [0, -2, 2, 5, 1, 0] }, 6),
   combo: () => keyed({ dx: [0, -3, 4, 8, 3, -2, 6, 3], rot: [0, -3, 3, 6, 1, -2, 5, 2] }, 8),
   skill: () => keyed({ dy: [0, -2, -6, -10, -10, -6, -2, 0], sx: [1, 1.03, 1.08, 1.12, 1.12, 1.08, 1.03, 1], sy: [1, 1.03, 1.08, 1.12, 1.12, 1.08, 1.03, 1] }, 8),
   hit: () => keyed({ dx: [-8, -14, -6, 0], rot: [-6, -12, -5, 0], tint: [0.35, 0.3, 0.12, 0] }, 4),
@@ -57,7 +57,7 @@ const HERO_POSES = {
 const ENEMY_POSES = {
   idle: (n) => seq(n, (t) => ({ dy: -2 * sin(t), sy: 1 + 0.02 * sin(t) })),
   walk: (n) => seq(n, (t) => ({ dx: 2 * sin(t), dy: -6 * Math.abs(Math.sin(Math.PI * t)), rot: 3 * sin(t) })),
-  attack: () => keyed({ dx: [0, -6, 14, 26, 10, 0], rot: [0, -8, 8, 16, 6, 0] }, 6),
+  attack: () => keyed({ dx: [0, -2, 3, 8, 2, 0], rot: [0, -2, 2, 5, 1, 0] }, 6), // small offsets: the attack-pose art carries the lunge
   special: () => keyed({ dy: [0, -4, -10, -14, -10, -4, 0, 0], sx: [1, 1.04, 1.1, 1.12, 1.1, 1.04, 1, 1], sy: [1, 0.96, 1.05, 1.08, 1.05, 0.98, 1, 1] }, 8),
   hit: () => keyed({ dx: [-10, -16, -8, 0], rot: [-10, -14, -6, 0], tint: [0.35, 0.3, 0.12, 0] }, 4),
   death: () => keyed({ rot: [0, -14, -35, -60, -80, -90, -90, -90], dy: [0, 4, 12, 24, 36, 44, 48, 48], tint: [0, 0, 0.1, 0.3, 0.45, 0.55, 0.55, 0.55], alpha: [1, 1, 1, 1, 0.95, 0.8, 0.6, 0.4] }, 8),
@@ -118,7 +118,7 @@ function makePlaceholderBase(file, kind, color) {
 function makeBase(entry, file) {
   const raw = path.join(RAW, entry.kind === 'hero' ? 'heroes' : entry.kind === 'enemy' ? 'enemies' : 'bosses', `${entry.id}.png`);
   if (fs.existsSync(raw)) {
-    const fit = entry.kind === 'boss' ? '232x232' : '150x150';
+    const fit = entry.kind === 'boss' ? '232x232' : entry.kind === 'enemy' ? '128x128' : '150x150'; // enemies fit inside the 144px cell
     magick([raw, '-fuzz', '30%', '-transparent', '#00FF00', '-trim', '+repage', '-resize', fit, file]);
     return false;
   }
@@ -128,18 +128,19 @@ function makeBase(entry, file) {
 
 /** Optional real pose art for a hero (art/raw/heroes/<id>-<pose>.png), scaled to the master's height. */
 function makePoseBase(entry, masterBase, pose) {
-  if (entry.kind !== 'hero') return null;
-  const raw = path.join(RAW, 'heroes', `${entry.id}-${pose}.png`);
+  if (entry.kind === 'boss') return null;
+  const raw = path.join(RAW, entry.kind === 'hero' ? 'heroes' : 'enemies', `${entry.id}-${pose}.png`);
   if (!fs.existsSync(raw)) return null;
   const file = path.join(TMP, `${entry.id}-${pose}-base.png`);
   const h = execFileSync('identify', ['-format', '%h', masterBase], { stdio: 'pipe' }).toString().trim();
   // Width is capped so wide swings and stride poses are never cropped by the 160px cell.
-  magick([raw, '-fuzz', '30%', '-transparent', '#00FF00', '-trim', '+repage', '-resize', `130x${h}`, file]);
+  magick([raw, '-fuzz', '30%', '-transparent', '#00FF00', '-trim', '+repage', '-resize', `${entry.kind === 'enemy' ? 104 : 130}x${h}`, file]);
   return file;
 }
 
 /** Which pose image (if any) a frame uses. Attack active frames, walk cycle contacts, and idle breath peak. */
 function poseFor(entry, a, i) {
+  if (entry.kind === 'enemy') return a.name === 'attack' && (a.active ?? []).includes(i) ? 'attack' : null;
   if (entry.kind !== 'hero') return null;
   if ((a.name === 'attack' || a.name === 'combo') && (a.active ?? []).includes(i)) return 'attack';
   if (a.name === 'walk') return { 0: 'walk-a', 2: 'walk-b', 4: 'walk-a', 6: 'walk-b' }[i] ?? null;
