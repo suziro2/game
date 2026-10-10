@@ -153,7 +153,7 @@ function renderDetails(p) {
     <div class="row"><span>Max HP</span><b>${st.maxHp}</b></div>
     <div class="row"><span>Attack</span><b>${st.atk}</b></div>
     <div class="row"><span>Defense</span><b>${st.def}</b></div>
-    <div class="row"><span>Skill</span><b>${esc(h.skillName)}</b></div>`;
+    <div class="row"><span>Skills</span><b>${h.skills.map((k, i) => `${i + 1}. ${esc(k.name)}`).join(' · ')}</b></div>`;
   const up = $('upgrades');
   up.innerHTML = '';
   for (const stat of ['hp', 'atk', 'def']) {

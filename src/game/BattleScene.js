@@ -56,7 +56,7 @@ export class BattleScene extends Phaser.Scene {
     this.add.rectangle(W / 2, GROUND, W, 3, 0x7fd3ff, 0.35).setDepth(-49);
     ensureEffectTextures(this);
 
-    this.keys = this.input.keyboard.addKeys({ A: 'A', D: 'D', LEFT: 'LEFT', RIGHT: 'RIGHT', W: 'W', UP: 'UP', SPACE: 'SPACE', J: 'J', K: 'K', L: 'L', H: 'H', SHIFT: 'SHIFT', ESC: 'ESC', Q: 'Q' });
+    this.keys = this.input.keyboard.addKeys({ A: 'A', D: 'D', LEFT: 'LEFT', RIGHT: 'RIGHT', W: 'W', UP: 'UP', SPACE: 'SPACE', J: 'J', K: 'K', U: 'U', I: 'I', L: 'L', H: 'H', SHIFT: 'SHIFT', ESC: 'ESC', Q: 'Q' });
     resetTouch();
 
     this.hero = new Hero(this, { id: this.heroId, stats: this.stats, potions: this.potions, x: 260 });
@@ -76,7 +76,7 @@ export class BattleScene extends Phaser.Scene {
     this.txtTitle.setText(this.level.title);
     this.txtPaused = this.add.text(width / 2, height / 2, 'PAUSED\nEsc to resume · Q to quit', { fontFamily: '"Trebuchet MS", sans-serif', fontSize: '34px', fontStyle: 'bold', align: 'center', color: '#fff', stroke: '#000', strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(9950).setVisible(false);
     this.hint = txt(width / 2, height - 36, 14, '#c9d2f5', 'center');
-    this.hint.setText('A/D move · double-tap dash · J/auto attack · K skill · H potion · Esc pause');
+    this.hint.setText('A/D move · double-tap dash · J/auto attack · K U I skills · H potion · Esc pause');
     this.time.delayedCall(9000, () => this.tweens.add({ targets: this.hint, alpha: 0, duration: 1200 }));
 
     this.buildStage();
@@ -181,6 +181,8 @@ export class BattleScene extends Phaser.Scene {
       jump: JustDown(k.W) || JustDown(k.UP) || JustDown(k.SPACE) || consumeTouch('jump'),
       attack: JustDown(k.J) || consumeTouch('attack'),
       skill: JustDown(k.K) || consumeTouch('skill'),
+      skill2: JustDown(k.U) || consumeTouch('skill2'),
+      skill3: JustDown(k.I) || consumeTouch('skill3'),
       dodge: JustDown(k.L) || consumeTouch('dodge'),
       potion: JustDown(k.H) || consumeTouch('potion'),
       pause: JustDown(k.ESC) || consumeTouch('pause'),
@@ -212,7 +214,9 @@ export class BattleScene extends Phaser.Scene {
       if (inp.dodge) hero.tryDodge();
       if (inp.attack) hero.tryAttack();
       else this.autoAttack();
-      if (inp.skill) hero.trySkill();
+      if (inp.skill) hero.trySkill(0);
+      if (inp.skill2) hero.trySkill(1);
+      if (inp.skill3) hero.trySkill(2);
       if (inp.jump && hero.z === 0 && !hero.locked) hero.vz = 540;
       if (inp.potion) this.usePotion();
     }
@@ -262,13 +266,14 @@ export class BattleScene extends Phaser.Scene {
     if (!wasDead && target.dead && target.kind === 'enemy') this.onKill(target);
   }
 
-  heroMelee(hero, mul) {
+  /** Basic melee attack. Each hero's style (scale, multi-hit, lifesteal) comes from HEROES[].attack. */
+  heroMelee(hero, { combo = false, second = false } = {}) {
+    const atk = hero.stats.attack || {};
+    const mul = (combo ? 1.35 : 1) * (atk.mul ?? 1);
     const box = hero.frontBox(hero.stats.reach, 130, 0);
-    const combo = mul > 1;
-    // Visible attack sprite: a motion trail of the hero plus a large accent-colored weapon arc.
     afterimage(this, hero.sprite, { tint: hero.stats.accent, dx: hero.facing * (combo ? 70 : 48) });
     playFx(this, 'slash', hero.x + hero.facing * (combo ? 95 : 75), GROUND - hero.z - (combo ? 118 : 102), {
-      tint: hero.stats.accent, scale: combo ? 1.7 : 1.35, flip: hero.facing < 0,
+      tint: hero.stats.accent, scale: (atk.scale ?? 1.4) * (combo ? 1.2 : 1), flip: hero.facing < 0,
     });
     if (combo) {
       // The finisher lands a second, white arc a moment later.
@@ -276,30 +281,79 @@ export class BattleScene extends Phaser.Scene {
         tint: 0xffffff, scale: 1.5, flip: hero.facing < 0,
       }));
     }
+    // Two-hit styles (dagger, twin blades) strike a second time shortly after the first.
+    if (atk.hits === 2 && !second) {
+      this.time.delayedCall(140, () => { if (!hero.dead) { hero.hitIds.clear(); this.heroMelee(hero, { second: true }); } });
+    }
     for (const t of this.targets()) {
       if (hero.hitIds.has(t) || !overlap(box, t.box)) continue;
       hero.hitIds.add(t);
       const crit = Math.random() < 0.12;
       const dmg = hero.atk * mul * (0.9 + Math.random() * 0.2) * (crit ? 1.6 : 1);
       this.hitTarget(t, dmg, { crit, fromX: hero.x, color: '#ffffff' });
+      if (atk.lifesteal) this.healHero(hero, (dmg * atk.lifesteal) / hero.maxHp, { quiet: true });
     }
   }
 
-  heroSkill(hero) {
+  /** Ranged basic attack (mages, archers): one small projectile. */
+  heroBasicBolt(hero) {
+    this.spawnHeroBolt(hero, 0, hero.atk * (hero.stats.attack?.mul ?? 1), hero.stats.accent);
+  }
+
+  spawnHeroBolt(hero, zOffset, dmg, color, speed = 640) {
+    const z = 70 + zOffset;
+    const x0 = hero.x + hero.facing * 40;
+    const img = this.add.image(x0, GROUND - z, orbTexture(this, color)).setDepth(9000).setScale(1.2);
+    this.projectiles.push({ kind: 'hero', img, x: x0, z, vx: hero.facing * speed, dmg, color, life: 1.6 });
+  }
+
+  /** Skill `index` of the hero. Kinds: aoe, bolt (volley), dash (hits along the path), heal. */
+  heroSkill(hero, index = 0) {
+    const sk = hero.stats.skills?.[index];
+    if (!sk) return;
     const color = hero.stats.accent;
     flash(this, color, 0.18, 220);
     shake(this, 160, 0.003);
-    if (hero.stats.skill === 'burst') {
-      const radius = ['ronan', 'bruno', 'darius'].includes(hero.id) ? 300 : 240;
-      playFx(this, 'burst', hero.x, GROUND - 90, { tint: color, scale: radius / 110 });
-      for (const t of this.targets()) {
-        if (Math.abs(t.x - hero.x) > radius) continue;
-        this.hitTarget(t, hero.atk * 2.2 * (0.95 + Math.random() * 0.1), { fromX: hero.x, color: '#ffd9a0' });
-      }
-      if (hero.id === 'elian') { hero.hp = Math.min(hero.maxHp, hero.hp + Math.round(hero.maxHp * 0.15)); floatText(this, hero.x, GROUND - 200, '+HEAL', '#fff3a0'); }
-    } else {
-      const img = this.add.image(hero.x + hero.facing * 40, GROUND - hero.z - 70, orbTexture(this, color)).setDepth(9000).setScale(1.2);
-      this.projectiles.push({ kind: 'hero', img, x: hero.x + hero.facing * 40, z: 70, vx: hero.facing * 640, dmg: hero.atk * 2, color, life: 1.6 });
+    const dmg = hero.atk * sk.mul;
+    if (sk.kind === 'aoe') this.skillArea(hero, sk.radius, dmg, sk, color);
+    else if (sk.kind === 'bolt') {
+      for (let i = 0; i < sk.count; i++) this.spawnHeroBolt(hero, (i - (sk.count - 1) / 2) * (sk.spread || 0), dmg, color);
+    } else if (sk.kind === 'dash') this.skillDash(hero, sk, dmg, color);
+    else if (sk.kind === 'heal') {
+      this.healHero(hero, sk.heal);
+      if (sk.radius > 0 && sk.mul > 0) this.skillArea(hero, sk.radius, dmg, sk, color);
+    }
+  }
+
+  skillArea(hero, radius, dmg, sk, color) {
+    playFx(this, sk.fx || 'burst', hero.x, GROUND - 90, { tint: color, scale: radius / 110 });
+    if (sk.shake) shake(this, 260, 0.008);
+    for (const t of this.targets()) {
+      if (Math.abs(t.x - hero.x) > radius) continue;
+      this.hitTarget(t, dmg * (0.95 + Math.random() * 0.1), { fromX: hero.x, color: '#ffd9a0' });
+    }
+  }
+
+  skillDash(hero, sk, dmg, color) {
+    const start = hero.x;
+    const tx = Phaser.Math.Clamp(start + hero.facing * sk.dist, 80, this.worldW - 80);
+    afterimage(this, hero.sprite, { tint: color, dx: hero.facing * 40, dur: 240 });
+    const lo = Math.min(start, tx) - 20;
+    const hi = Math.max(start, tx) + 20;
+    for (const t of this.targets()) {
+      if (t.x < lo || t.x > hi) continue;
+      this.hitTarget(t, dmg * (0.95 + Math.random() * 0.1), { fromX: start, color: '#ffd9a0' });
+    }
+    this.tweens.add({ targets: hero, x: tx, duration: 160, ease: 'Quad.easeOut' });
+  }
+
+  healHero(hero, fraction, { quiet = false } = {}) {
+    const amt = Math.round(hero.maxHp * fraction);
+    if (amt <= 0) return;
+    hero.hp = Math.min(hero.maxHp, hero.hp + amt);
+    if (!quiet) {
+      floatText(this, hero.x, GROUND - 200, `+${amt}`, '#b6ffb0');
+      playFx(this, 'burst', hero.x, GROUND - 90, { tint: 0x9dffb0, scale: 1.2 });
     }
   }
 

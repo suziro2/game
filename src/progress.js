@@ -27,6 +27,8 @@ export function heroStats(p, id) {
     reach: d.reach,
     skill: d.skill,
     skillName: d.skillName,
+    skills: d.skills,
+    attack: d.attack,
     accent: d.accent,
     level: s.level,
   };

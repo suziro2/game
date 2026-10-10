@@ -4,19 +4,92 @@
 export const CHAPTERS_COUNT = 10;
 export const LEVELS_PER_CHAPTER = 5; // levels 1-4 regular encounters, level 5 boss
 
-export const HEROES = [
-  // reach = melee hitbox reach (px); skill: 'burst' (AoE around hero) or 'bolt' (projectile)
-  { id: 'aiden', name: 'Aiden', title: 'Silver Knight', role: 'Balanced', hp: 120, atk: 14, def: 5, speed: 170, reach: 86, skill: 'burst', skillName: 'Radiant Cleave', unlock: 0, accent: 0x7fd3ff },
-  { id: 'luna', name: 'Luna', title: 'Moon Mage', role: 'Ranged magic', hp: 95, atk: 11, def: 3, speed: 165, reach: 60, skill: 'bolt', skillName: 'Lunar Bolt', unlock: 1, accent: 0xb79cff },
-  { id: 'ronan', name: 'Ronan', title: 'Crimson Greatsword', role: 'Heavy tank', hp: 150, atk: 17, def: 7, speed: 145, reach: 96, skill: 'burst', skillName: 'Crimson Quake', unlock: 2, accent: 0xff6a4e },
-  { id: 'mira', name: 'Mira', title: 'Shadow Dagger', role: 'Fast striker', hp: 100, atk: 13, def: 3, speed: 230, reach: 70, skill: 'burst', skillName: 'Viper Flurry', unlock: 3, accent: 0x6dffb0 },
-  { id: 'kael', name: 'Kael', title: 'Golden Spear', role: 'Reach fighter', hp: 115, atk: 14, def: 5, speed: 175, reach: 104, skill: 'bolt', skillName: 'Sunlance', unlock: 4, accent: 0xffd54f },
-  { id: 'bruno', name: 'Bruno', title: 'Iron Hammer', role: 'Brawler', hp: 140, atk: 16, def: 6, speed: 150, reach: 82, skill: 'burst', skillName: 'Earthshatter', unlock: 5, accent: 0xff9f43 },
-  { id: 'sylvie', name: 'Sylvie', title: 'Forest Ranger', role: 'Archer', hp: 92, atk: 12, def: 3, speed: 200, reach: 58, skill: 'bolt', skillName: 'Storm Volley', unlock: 6, accent: 0xc77dff },
-  { id: 'darius', name: 'Darius', title: 'Dark Knight', role: 'Lifesteal tank', hp: 135, atk: 15, def: 6, speed: 160, reach: 90, skill: 'burst', skillName: 'Abyss Rend', unlock: 7, accent: 0x9aa0ff },
-  { id: 'elian', name: 'Elian', title: 'Holy Cleric', role: 'Support healer', hp: 110, atk: 11, def: 4, speed: 165, reach: 72, skill: 'burst', skillName: 'Sanctified Light', unlock: 8, accent: 0xfff3a0 },
-  { id: 'riven', name: 'Riven', title: 'Twin Blades', role: 'Combo specialist', hp: 105, atk: 15, def: 4, speed: 215, reach: 74, skill: 'burst', skillName: 'Crimson Storm', unlock: 9, accent: 0xff3b6b },
+// Each hero has its own basic attack and three skills.
+//   attack: { kind: 'melee' | 'bolt', mul, hits?, scale?, count? } — melee uses the reach hitbox; bolt fires a small projectile.
+//   skills[i]: { name, kind: 'aoe' | 'bolt' | 'dash' | 'heal', cost (energy), mul (damage x ATK), ... }
+//     aoe:  radius, shake?, heal? (fraction of max HP)
+//     bolt: count (projectiles), spread (px between them)
+//     dash: dist (px forward, hits everything on the way), heal?
+//     heal: heal (fraction of max HP), radius? (optional damage around the hero)
+export const HEROES_RAW = [
+  { id: 'aiden', name: 'Aiden', title: 'Silver Knight', role: 'Balanced', hp: 120, atk: 14, def: 5, speed: 170, reach: 86, unlock: 0, accent: 0x7fd3ff,
+    attack: { kind: 'melee', mul: 1, scale: 1.35 },
+    skills: [
+      { name: 'Radiant Cleave', kind: 'aoe', cost: 30, mul: 2.2, radius: 240, fx: 'burst' },
+      { name: 'Sun Lance', kind: 'dash', cost: 35, mul: 2.0, dist: 320 },
+      { name: 'Holy Guard', kind: 'heal', cost: 45, heal: 0.2, mul: 1.0, radius: 160 },
+    ] },
+  { id: 'luna', name: 'Luna', title: 'Moon Mage', role: 'Ranged magic', hp: 95, atk: 11, def: 3, speed: 165, reach: 60, unlock: 1, accent: 0xb79cff,
+    attack: { kind: 'bolt', mul: 0.9, count: 1 },
+    skills: [
+      { name: 'Lunar Bolt', kind: 'bolt', cost: 30, mul: 2.0, count: 1, spread: 0 },
+      { name: 'Moon Volley', kind: 'bolt', cost: 40, mul: 1.1, count: 3, spread: 40 },
+      { name: 'Eclipse', kind: 'aoe', cost: 50, mul: 2.6, radius: 320, fx: 'burst' },
+    ] },
+  { id: 'ronan', name: 'Ronan', title: 'Crimson Greatsword', role: 'Heavy tank', hp: 150, atk: 17, def: 7, speed: 145, reach: 96, unlock: 2, accent: 0xff6a4e,
+    attack: { kind: 'melee', mul: 1.35, scale: 1.6 },
+    skills: [
+      { name: 'Crimson Quake', kind: 'aoe', cost: 30, mul: 2.4, radius: 300, shake: true, fx: 'burst' },
+      { name: 'Blood Charge', kind: 'dash', cost: 35, mul: 2.2, dist: 260 },
+      { name: 'Iron Will', kind: 'heal', cost: 45, heal: 0.25, mul: 0.8, radius: 200 },
+    ] },
+  { id: 'mira', name: 'Mira', title: 'Shadow Dagger', role: 'Fast striker', hp: 100, atk: 13, def: 3, speed: 230, reach: 70, unlock: 3, accent: 0x6dffb0,
+    attack: { kind: 'melee', mul: 0.7, hits: 2, scale: 1.15 },
+    skills: [
+      { name: 'Viper Flurry', kind: 'aoe', cost: 30, mul: 1.8, radius: 200, fx: 'slash' },
+      { name: 'Shadow Step', kind: 'dash', cost: 35, mul: 2.2, dist: 420 },
+      { name: 'Venom Cloud', kind: 'aoe', cost: 50, mul: 1.6, radius: 340, fx: 'burst' },
+    ] },
+  { id: 'kael', name: 'Kael', title: 'Golden Spear', role: 'Reach fighter', hp: 115, atk: 14, def: 5, speed: 175, reach: 104, unlock: 4, accent: 0xffd54f,
+    attack: { kind: 'melee', mul: 1.1, scale: 1.25 },
+    skills: [
+      { name: 'Sunlance', kind: 'bolt', cost: 30, mul: 2.2, count: 1, spread: 0 },
+      { name: 'Spear Rush', kind: 'dash', cost: 35, mul: 2.0, dist: 360 },
+      { name: 'Golden Aura', kind: 'heal', cost: 45, heal: 0.1, mul: 1.5, radius: 220 },
+    ] },
+  { id: 'bruno', name: 'Bruno', title: 'Iron Hammer', role: 'Brawler', hp: 140, atk: 16, def: 6, speed: 150, reach: 82, unlock: 5, accent: 0xff9f43,
+    attack: { kind: 'melee', mul: 1.2, scale: 1.5 },
+    skills: [
+      { name: 'Earthshatter', kind: 'aoe', cost: 30, mul: 2.4, radius: 260, shake: true, fx: 'burst' },
+      { name: 'Stone Charge', kind: 'dash', cost: 35, mul: 2.4, dist: 240 },
+      { name: 'Iron Skin', kind: 'heal', cost: 45, heal: 0.3, mul: 0.5, radius: 120 },
+    ] },
+  { id: 'sylvie', name: 'Sylvie', title: 'Forest Ranger', role: 'Archer', hp: 92, atk: 12, def: 3, speed: 200, reach: 58, unlock: 6, accent: 0xc77dff,
+    attack: { kind: 'bolt', mul: 0.8, count: 1 },
+    skills: [
+      { name: 'Storm Volley', kind: 'bolt', cost: 30, mul: 1.2, count: 5, spread: 34 },
+      { name: 'Piercing Shot', kind: 'bolt', cost: 40, mul: 3.2, count: 1, spread: 0 },
+      { name: 'Wind Step', kind: 'dash', cost: 50, mul: 1.4, dist: 500 },
+    ] },
+  { id: 'darius', name: 'Darius', title: 'Dark Knight', role: 'Lifesteal tank', hp: 135, atk: 15, def: 6, speed: 160, reach: 90, unlock: 7, accent: 0x9aa0ff,
+    attack: { kind: 'melee', mul: 1.0, scale: 1.4, lifesteal: 0.08 },
+    skills: [
+      { name: 'Abyss Rend', kind: 'aoe', cost: 30, mul: 2.3, radius: 280, fx: 'burst' },
+      { name: 'Soul Drain', kind: 'heal', cost: 45, heal: 0.15, mul: 1.5, radius: 200 },
+      { name: 'Dark Dash', kind: 'dash', cost: 35, mul: 2.0, dist: 300 },
+    ] },
+  { id: 'elian', name: 'Elian', title: 'Holy Cleric', role: 'Support healer', hp: 110, atk: 11, def: 4, speed: 165, reach: 72, unlock: 8, accent: 0xfff3a0,
+    attack: { kind: 'melee', mul: 1.0, scale: 1.2, lifesteal: 0.05 },
+    skills: [
+      { name: 'Sanctified Light', kind: 'heal', cost: 30, heal: 0.15, mul: 1.8, radius: 240 },
+      { name: 'Judgment', kind: 'bolt', cost: 40, mul: 2.8, count: 1, spread: 0 },
+      { name: 'Blessing', kind: 'heal', cost: 50, heal: 0.3, mul: 0, radius: 0 },
+    ] },
+  { id: 'riven', name: 'Riven', title: 'Twin Blades', role: 'Combo specialist', hp: 105, atk: 15, def: 4, speed: 215, reach: 74, unlock: 9, accent: 0xff3b6b,
+    attack: { kind: 'melee', mul: 0.8, hits: 2, scale: 1.2 },
+    skills: [
+      { name: 'Crimson Storm', kind: 'aoe', cost: 30, mul: 2.0, radius: 200, fx: 'slash' },
+      { name: 'Blade Dance', kind: 'dash', cost: 35, mul: 2.1, dist: 340 },
+      { name: 'Phantom Cut', kind: 'bolt', cost: 45, mul: 0.9, count: 3, spread: 30 },
+    ] },
 ];
+
+/** Heroes with the primary skill exposed as skill/skillName (used by the menu and progress code). */
+export const HEROES = HEROES_RAW.map((h) => ({
+  ...h,
+  skill: h.skills[0].kind === 'bolt' ? 'bolt' : 'burst',
+  skillName: h.skills[0].name,
+}));
 
 // Enemy definitions. spread = how far apart specials are used; proj = ranged projectile for special.
 export const ENEMIES = {

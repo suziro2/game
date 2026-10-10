@@ -1,6 +1,6 @@
 // Shared input state. Touch buttons (DOM) feed this module; keyboard is read by BattleScene.
-export const touch = { left: false, right: false, run: false, jump: false, attack: false, skill: false, dodge: false, potion: false };
-const pending = { left: false, right: false, jump: false, attack: false, skill: false, dodge: false, potion: false };
+export const touch = { left: false, right: false, run: false, jump: false, attack: false, skill: false, skill2: false, skill3: false, dodge: false, potion: false };
+const pending = { left: false, right: false, jump: false, attack: false, skill: false, skill2: false, skill3: false, dodge: false, potion: false };
 
 export function touchPress(key) {
   touch[key] = true;

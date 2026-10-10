@@ -165,10 +165,13 @@ export class Hero extends Fighter {
     this.play('attack', { force: true });
   }
 
-  trySkill() {
-    if (this.dead || this.locked || this.energy < 30) return false;
-    this.energy -= 30;
+  /** Uses skill `index` (0-2) if the hero has enough energy. Each hero has three skills. */
+  trySkill(index = 0) {
+    const sk = this.stats.skills?.[index];
+    if (!sk || this.dead || this.locked || this.energy < sk.cost) return false;
+    this.energy -= sk.cost;
     this.armor = 0.9;
+    this.pendingSkill = index;
     return this.play('skill');
   }
 
@@ -185,8 +188,11 @@ export class Hero extends Fighter {
   }
 
   onActive(name) {
-    if (name === 'attack' || name === 'combo') this.scene.heroMelee(this, name === 'combo' ? 1.35 : 1);
-    else if (name === 'skill') this.scene.heroSkill(this);
+    if (name === 'attack' || name === 'combo') {
+      // Bolt-style heroes (mages, archers) fire a projectile instead of a melee swing.
+      if (this.stats.attack?.kind === 'bolt') this.scene.heroBasicBolt(this);
+      else this.scene.heroMelee(this, { combo: name === 'combo' });
+    } else if (name === 'skill') this.scene.heroSkill(this, this.pendingSkill ?? 0);
   }
 
   onAnimEnd(name) {
