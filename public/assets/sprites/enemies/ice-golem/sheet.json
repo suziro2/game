@@ -3,7 +3,7 @@
   "name": "Ice Golem",
   "kind": "enemy",
   "accent": "#9ee6ff",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

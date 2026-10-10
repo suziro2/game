@@ -5,7 +5,6 @@ import { SPRITE_SIZES } from '../data/game-data.js';
 import { textureKey, metaCache } from './assets.js';
 
 export const GROUND = 610;
-export const ARENA_W = 1280;
 const GRAVITY = 1500;
 export const overlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 
@@ -97,7 +96,7 @@ export class Fighter {
       this.z += this.vz * dt;
       if (this.z <= 0) { this.z = 0; this.vz = 0; this.onLand?.(); }
     }
-    this.x = Math.max(40, Math.min(ARENA_W - 40, this.x + this.vx * dt));
+    this.x = Math.max(40, Math.min(this.scene.worldW - 40, this.x + this.vx * dt));
     this.syncSprite();
   }
 
@@ -173,12 +172,14 @@ export class Hero extends Fighter {
     return this.play('skill');
   }
 
-  tryDodge() {
+  tryDodge(dir = -this.facing) {
     if (this.dead || this.dodgeCd > 0 || this.z > 0) return false;
     this.dodgeCd = 0.75;
     this.invuln = 0.36;
     this.dodgeTime = 0.3;
-    this.dodgeVx = -this.facing * 430;
+    this.facing = dir > 0 ? 1 : -1;
+    this.sprite.setFlipX(this.facing < 0);
+    this.dodgeVx = dir * 460;
     this.comboBuffered = false;
     return this.play('dodge', { force: true });
   }
@@ -232,10 +233,22 @@ export class Enemy extends Fighter {
     this.aware = false;
     this.spawnDelay = spawnDelay;
     this.sprite.setAlpha(spawnDelay > 0 ? 0 : 1);
+    this.dormant = true; // stays hidden and inactive until its wave is reached
+    this.sprite.setVisible(false);
     this.lastHitTime = 0;
   }
 
+  /** Brings a dormant enemy into the fight (fade-in, then aggressive). */
+  activate(delay = 0.35) {
+    this.dormant = false;
+    this.aware = true;
+    this.spawnDelay = delay;
+    this.sprite.setVisible(true);
+    this.sprite.setAlpha(0);
+  }
+
   update(dt, hero) {
+    if (this.dormant) return;
     if (this.dead) { this.integrate(dt); return; }
     this.cd = Math.max(0, this.cd - dt);
     this.specialCd = Math.max(0, this.specialCd - dt);
@@ -310,11 +323,20 @@ export class Boss extends Fighter {
     this.cd = 1.2;
     this.aware = false;
     this.name = def.name;
+    this.dormant = true;
+    this.sprite.setVisible(false);
+  }
+
+  activate() {
+    this.dormant = false;
+    this.aware = true;
+    this.sprite.setVisible(true);
   }
 
   get phaseMul() { return [1, 0.85, 0.7][this.phase]; }
 
   update(dt, hero) {
+    if (this.dormant) return;
     if (this.dead) { this.integrate(dt); return; }
     this.cd = Math.max(0, this.cd - dt);
     this.faceToward(hero.x);

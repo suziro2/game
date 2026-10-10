@@ -1,0 +1,15 @@
+{
+  "id": "burst",
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "columns": 8,
+  "rows": 1,
+  "anims": {
+    "play": {
+      "row": 0,
+      "frames": 8,
+      "fps": 16,
+      "loop": false
+    }
+  }
+}

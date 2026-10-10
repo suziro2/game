@@ -3,7 +3,7 @@
   "name": "Ice Warrior",
   "kind": "enemy",
   "accent": "#7fd6ff",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

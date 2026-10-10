@@ -54,3 +54,14 @@ export function flash(scene, color = 0xffffff, alpha = 0.35, ms = 160) {
 }
 
 export function shake(scene, ms = 200, intensity = 0.006) { scene.cameras.main.shake(ms, intensity); }
+
+/** Plays a one-shot effect sprite sheet (fx-<name>) at a position and destroys it when finished. */
+export function playFx(scene, name, x, y, { tint = 0xffffff, scale = 1, flip = false, depth = 9000, add = true } = {}) {
+  const key = `fx-${name}:play`;
+  if (!scene.anims.exists(key)) return null;
+  const s = scene.add.sprite(x, y, `fx-${name}`, 0).setTint(tint).setScale(scale).setDepth(depth).setFlipX(flip);
+  if (add) s.setBlendMode(Phaser.BlendModes.ADD);
+  s.play(key);
+  s.once('animationcomplete', () => s.destroy());
+  return s;
+}

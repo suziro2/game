@@ -3,6 +3,13 @@ import Phaser from 'phaser';
 import { SPRITE_SIZES, spritePath, metaPath, BOSSES } from '../data/game-data.js';
 import { loader } from '../ui/loader.js';
 
+/** Combat effect sheets (frame-by-frame, tinted at runtime). Loaded once, never unloaded. */
+export const EFFECTS = {
+  slash: { size: 192, frames: 8, fps: 24 },
+  burst: { size: 256, frames: 8, fps: 16 },
+  impact: { size: 128, frames: 6, fps: 20 },
+  dust: { size: 128, frames: 6, fps: 16 },
+};
 export const metaCache = {}; // textureKey -> sheet.json contents
 export const textureKey = (kind, id) => `${kind}-${id}`;
 
@@ -22,6 +29,14 @@ export function buildAnimations(scene, key, meta) {
     if (scene.anims.exists(animKey)) continue;
     const frames = Array.from({ length: a.frames }, (_, i) => ({ key, frame: a.row * cols + i }));
     scene.anims.create({ key: animKey, frames, frameRate: a.fps, repeat: a.loop ? -1 : 0 });
+  }
+}
+
+/** Creates `fx-<name>:play` animations once their textures exist. */
+export function buildEffectAnimations(scene) {
+  for (const [name, e] of Object.entries(EFFECTS)) {
+    if (!scene.textures.exists(`fx-${name}`) || scene.anims.exists(`fx-${name}:play`)) continue;
+    scene.anims.create({ key: `fx-${name}:play`, frames: scene.anims.generateFrameNumbers(`fx-${name}`, { start: 0, end: e.frames - 1 }), frameRate: e.fps, repeat: 0 });
   }
 }
 
@@ -58,9 +73,14 @@ export function loadLevelAssets(scene, { level, heroId }) {
       if (!metaCache[key]) { scene.load.json(`${key}-meta`, metaPath(a.kind, a.id)); queued++; }
     }
     if (!scene.textures.exists('env-arena')) { scene.load.image('env-arena', '/assets/environment/arena-bg.png'); queued++; }
+    for (const [name, e] of Object.entries(EFFECTS)) {
+      if (!scene.textures.exists(`fx-${name}`)) { scene.load.spritesheet(`fx-${name}`, `/assets/effects/${name}/sheet.png`, { frameWidth: e.size, frameHeight: e.size }); queued++; }
+    }
+
 
     if (queued === 0) {
       // Everything is already cached (e.g. retrying a level): just (re)build animations.
+      buildEffectAnimations(scene);
       for (const a of needed) buildAnimations(scene, textureKey(a.kind, a.id), metaCache[textureKey(a.kind, a.id)]);
       scene.time.delayedCall(0, () => resolve({ failed: [] }));
       return;
@@ -77,6 +97,7 @@ export function loadLevelAssets(scene, { level, heroId }) {
     scene.load.once(Phaser.Loader.Events.COMPLETE, () => {
       cleanup();
       if (failed.length) return resolve({ failed });
+      buildEffectAnimations(scene);
       for (const a of needed) {
         const key = textureKey(a.kind, a.id);
         if (!metaCache[key]) {

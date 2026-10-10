@@ -3,7 +3,7 @@
   "name": "Wolf",
   "kind": "enemy",
   "accent": "#6d6f7a",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

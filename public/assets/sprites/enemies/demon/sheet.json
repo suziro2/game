@@ -3,7 +3,7 @@
   "name": "Demon",
   "kind": "enemy",
   "accent": "#b3262b",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

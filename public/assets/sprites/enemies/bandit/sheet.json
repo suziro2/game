@@ -3,7 +3,7 @@
   "name": "Bandit",
   "kind": "enemy",
   "accent": "#8a6a4a",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

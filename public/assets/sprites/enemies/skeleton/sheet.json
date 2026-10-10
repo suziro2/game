@@ -3,7 +3,7 @@
   "name": "Skeleton",
   "kind": "enemy",
   "accent": "#d9d4c0",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

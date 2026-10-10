@@ -131,8 +131,8 @@ async function playLevel(index) {
   const ok = await loadLevel(level, heroId);
   if (!ok) { await loader.hide(); showMenu(); return; }
 
-  $('game-root').hidden = false;
-  game.scale.refresh(); // container was display:none; recompute canvas size
+  $('game-root').classList.remove('off');
+  game.scale.refresh();
   if (level.isBoss) {
     await loader.hide();
     await ui.showBossIntro(level.boss);
@@ -142,7 +142,7 @@ async function playLevel(index) {
   $('touch-controls').hidden = !coarse();
   resetTouch();
   const res = await runBattle({ level, heroId, stats, potions: p.potions });
-  $('game-root').hidden = true;
+  $('game-root').classList.add('off');
   $('touch-controls').hidden = true;
   resetTouch();
   applyResult(index, level, heroId, res);
@@ -201,7 +201,10 @@ document.querySelectorAll('#touch-controls [data-key]').forEach((btn) => {
 });
 // Stop arrow keys/space from scrolling the page while playing.
 window.addEventListener('keydown', (e) => {
-  if (!$('game-root').hidden && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
+  if (!$('game-root').classList.contains('off') && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) e.preventDefault();
 });
+
+// Debug hook for automated browser tests (read-only access to the running Phaser game).
+window.__ashen = { get game() { return game; }, get state() { return state; } };
 
 boot();

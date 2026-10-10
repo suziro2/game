@@ -176,3 +176,5 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(127, 211, 
 .row-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 .small-btn { width: 56px !important; height: 56px !important; font-size: 11px !important; }
 .actions button.on, .small-btn.on { background: rgba(127,211,255,0.45) !important; }
+
+#game-root.off { visibility: hidden; pointer-events: none; }

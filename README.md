@@ -20,12 +20,12 @@ Accounts and saves are stored in `server/data/store.json` (git-ignored).
 
 | Action | Keyboard | Touch |
 | --- | --- | --- |
-| Move | A / D or ← / → | ◀ ▶ |
+| Move (side-scrolling stage) | A / D or ← / → | ◀ ▶ |
+| Dash / dodge (double-tap a direction) | double-tap A / D | DODGE |
 | Run | Hold Shift | RUN (toggle) |
-| Jump | W / ↑ / Space | JUMP |
-| Basic attack (press again to chain the combo finisher) | J | ATK |
+| Attack (auto-attacks when enemies are in reach; press J to chain the combo) | J | ATK |
 | Special skill (30 energy) | K | SKILL |
-| Dodge (i-frames) | L | DODGE |
+| Health potion (45% HP) | H | 🧪 |
 | Health potion (45% HP) | H | 🧪 |
 | Pause / quit from pause | Esc / Q | — |
 
@@ -57,8 +57,15 @@ Accounts and saves are stored in `server/data/store.json` (git-ignored).
 ### Current art status
 
 - **Heroes (10):** real AI-generated artwork, processed into sheets.
-- **Enemies (16 types) and bosses (10):** placeholders until their raw art is generated. Drop the
+- **Enemies (16 types) and bosses (10):** 10 enemies have real artwork (zombie, skeleton, goblin, wolf, bandit,
+  dark mage, ice warrior, ice golem, demon, shadow assassin). The other 6 enemies and all 10 bosses are still
+  temporary placeholders and must not be treated as final art. Drop the
   files into `art/raw/enemies/` and `art/raw/bosses/` and run `npm run sprites`.
+- **Battle style (Undead Slayer-like):** side-scrolling stages with waves of three enemies, auto-attack,
+  auto-run to the next wave, a stage progress bar, boss activation near the end, and drops (HP, energy,
+  coins) that are collected automatically by magnet.
+- **Attack effects:** one-shot additive sprite sheets in `public/assets/effects/{slash,burst,impact,dust}/`,
+  built by `tools/build-effects.mjs` and tinted per hero at runtime. They play on attacks, hits, and skills.
 - Animation frames are produced by transforms of the single master artwork (bob, lean, lunge,
   squash, hit recoil, dodge fade, fall). They are not hand-drawn in-betweens.
 

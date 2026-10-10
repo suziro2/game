@@ -1,0 +1,15 @@
+{
+  "id": "impact",
+  "frameWidth": 128,
+  "frameHeight": 128,
+  "columns": 6,
+  "rows": 1,
+  "anims": {
+    "play": {
+      "row": 0,
+      "frames": 6,
+      "fps": 18,
+      "loop": false
+    }
+  }
+}

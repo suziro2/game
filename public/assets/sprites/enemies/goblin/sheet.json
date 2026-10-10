@@ -3,7 +3,7 @@
   "name": "Goblin",
   "kind": "enemy",
   "accent": "#5ea84a",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

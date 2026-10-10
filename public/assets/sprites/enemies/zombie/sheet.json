@@ -3,7 +3,7 @@
   "name": "Zombie",
   "kind": "enemy",
   "accent": "#6b8e4e",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

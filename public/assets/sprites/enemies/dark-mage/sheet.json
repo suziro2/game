@@ -3,7 +3,7 @@
   "name": "Dark Mage",
   "kind": "enemy",
   "accent": "#7a4cc2",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

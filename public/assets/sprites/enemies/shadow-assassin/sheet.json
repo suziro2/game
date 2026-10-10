@@ -3,7 +3,7 @@
   "name": "Shadow Assassin",
   "kind": "enemy",
   "accent": "#2b2140",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,
