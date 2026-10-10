@@ -20,7 +20,12 @@ function queueSave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNow, 300);
 }
+let saveInFlight = false;
+let saveAgain = false;
+/** Saves run one at a time; a save requested meanwhile runs right after the current one finishes. */
 async function saveNow() {
+  if (saveInFlight) { saveAgain = true; return; }
+  saveInFlight = true;
   try {
     const r = await api.save(state.progress);
     state.progress = r.progress;
@@ -29,6 +34,9 @@ async function saveNow() {
     if (e.status === 401) { setStatus('Your session expired. Please create a new account.'); ui.showAuth(authHandlers); return; }
     setStatus(`Save failed (${e.message}). Retrying…`);
     saveTimer = setTimeout(saveNow, 5000);
+  } finally {
+    saveInFlight = false;
+    if (saveAgain) { saveAgain = false; saveNow(); }
   }
 }
 

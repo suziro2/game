@@ -13,7 +13,7 @@ const data = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'ashen-test-')), 's
 const base = `http://127.0.0.1:${port}`;
 const H = { 'X-Requested-With': 'ashen-vow', 'Content-Type': 'application/json' };
 
-const srv = spawn('node', ['server/server.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(port), ASHEN_DATA: data }, stdio: ['ignore', 'pipe', 'pipe'] });
+const srv = spawn('node', ['server/server.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(port), ASHEN_DATA: data, ASHEN_SESSION_GRACE_MS: '1500' }, stdio: ['ignore', 'pipe', 'pipe'] });
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 async function ready() { for (let i = 0; i < 50; i++) { try { await fetch(base + '/api/session'); return; } catch { await wait(100); } } throw new Error('server did not start'); }
 const cookieOf = (res) => (res.headers.get('set-cookie') || '').split(';')[0];
@@ -55,9 +55,12 @@ try {
   const rotated = cookieOf(r);
   assert.notEqual(rotated, sid, 'session token must rotate on restore');
 
-  // 7. old token is no longer valid after rotation
+  // 7. old token stays valid only for the short grace window, then stops working
   r = await fetch(base + '/api/session', { headers: { Cookie: sid } });
-  assert.equal((await r.json()).authenticated, false);
+  assert.equal((await r.json()).authenticated, true, 'old token works during the grace window');
+  await wait(1700);
+  r = await fetch(base + '/api/session', { headers: { Cookie: sid } });
+  assert.equal((await r.json()).authenticated, false, 'old token must expire after the grace window');
 
   // 8. save progress (sanitized server-side)
   const progress = { ...restored.progress, coins: 500, highestLevelCleared: 5, potions: 7, coinsHack: 1, selectedHero: 'luna', unlockedHeroes: ['aiden', 'luna', 'bogus'] };
@@ -78,7 +81,7 @@ try {
   await wait(400);
   srv.kill();
   await wait(300);
-  const srv2 = spawn('node', ['server/server.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(port), ASHEN_DATA: data }, stdio: 'ignore' });
+  const srv2 = spawn('node', ['server/server.mjs'], { cwd: ROOT, env: { ...process.env, PORT: String(port), ASHEN_DATA: data, ASHEN_SESSION_GRACE_MS: '1500' }, stdio: 'ignore' });
   await ready();
   r = await fetch(base + '/api/session', { headers: { Cookie: afterSave } });
   const again = await r.json();
@@ -98,6 +101,11 @@ try {
   const loggedIn = await (await fetch(base + '/api/session', { headers: { Cookie: loginCookie } })).json();
   assert.equal(loggedIn.authenticated, true);
   assert.equal(loggedIn.progress.coins, 500);
+  // 10c. overlapping saves sharing one cookie must not log the player out
+  const sess = await (await fetch(base + '/api/session', { headers: { Cookie: loginCookie } })).json();
+  const body = JSON.stringify({ progress: sess.progress });
+  const results = await Promise.all([1, 2, 3, 4].map(() => fetch(base + '/api/save', { method: 'PUT', headers: { ...H, Cookie: loginCookie }, body }).then((x) => x.status)));
+  assert.deepEqual(results, [200, 200, 200, 200], 'concurrent saves must all succeed');
   // 11. logout ends the session
   r = await fetch(base + '/api/logout', { method: 'POST', headers: H });
   assert.equal(r.status, 200);

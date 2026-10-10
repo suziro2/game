@@ -80,6 +80,7 @@ function setSessionCookie(req, res, token) {
 }
 function clearSessionCookie(res) { res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`); }
 
+const SESSION_GRACE_MS = Number(process.env.ASHEN_SESSION_GRACE_MS ?? 30_000);
 /** Issues a new session token and stores only its hash. */
 function createSession(userId) {
   const token = crypto.randomBytes(32).toString('base64url');
@@ -96,7 +97,9 @@ function resolveSession(req, res) {
   if (!s || s.expires < Date.now() || !store.users[s.userId]) {
     delete store.sessions[key]; persist(); clearSessionCookie(res); return null;
   }
-  delete store.sessions[key]; // rotate on every restore to limit replay of stolen tokens
+  // Rotate the token to limit replay of stolen tokens. The old token stays valid for a short grace
+  // window so requests already in flight with it (e.g. overlapping saves) do not log the player out.
+  s.expires = Math.min(s.expires, Date.now() + SESSION_GRACE_MS);
   const fresh = createSession(s.userId);
   setSessionCookie(req, res, fresh);
   return store.users[s.userId];
