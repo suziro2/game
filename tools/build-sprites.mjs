@@ -44,8 +44,9 @@ const HERO_POSES = {
   idle: (n) => seq(n, (t) => ({ dy: -2 * sin(t), sy: 1 + 0.012 * sin(t) })),
   walk: (n) => seq(n, (t) => ({ dx: 2 * sin(t), dy: -4 * Math.abs(Math.sin(Math.PI * t)), rot: 2 * sin(t) })),
   run: (n) => seq(n, (t) => ({ dx: 3 * sin(t), dy: -7 * Math.abs(Math.sin(Math.PI * t)), rot: 7 + 2 * sin(t), sx: 1.03, sy: 0.98 })),
-  attack: () => keyed({ dx: [0, -6, 6, 22, 12, 0], rot: [0, -6, 4, 14, 8, 0] }, 6),
-  combo: () => keyed({ dx: [0, -4, 8, 20, 6, -2, 14, 6], rot: [0, -4, 6, 12, 2, -3, 10, 4] }, 8),
+  // Small offsets only: the real attack-pose art carries the lunge, and larger shifts clip the 160px cell.
+  attack: () => keyed({ dx: [0, -3, 3, 8, 2, 0], rot: [0, -3, 2, 5, 2, 0] }, 6),
+  combo: () => keyed({ dx: [0, -3, 4, 8, 3, -2, 6, 3], rot: [0, -3, 3, 6, 1, -2, 5, 2] }, 8),
   skill: () => keyed({ dy: [0, -2, -6, -10, -10, -6, -2, 0], sx: [1, 1.03, 1.08, 1.12, 1.12, 1.08, 1.03, 1], sy: [1, 1.03, 1.08, 1.12, 1.12, 1.08, 1.03, 1] }, 8),
   hit: () => keyed({ dx: [-8, -14, -6, 0], rot: [-6, -12, -5, 0], tint: [0.35, 0.3, 0.12, 0] }, 4),
   dodge: () => keyed({ dx: [-4, -20, -30, -18, 0], sx: [1, 0.92, 0.9, 0.95, 1], alpha: [1, 0.55, 0.35, 0.7, 1] }, 5),
@@ -125,6 +126,17 @@ function makeBase(entry, file) {
   return true;
 }
 
+/** Real attack-pose base for heroes that have one, scaled to the master base's height. Returns null otherwise. */
+function makeAttackBase(entry, masterBase) {
+  if (entry.kind !== 'hero') return null;
+  const raw = path.join(RAW, 'heroes', `${entry.id}-attack.png`);
+  if (!fs.existsSync(raw)) return null;
+  const file = path.join(TMP, `${entry.id}-attack-base.png`);
+  const h = execFileSync('identify', ['-format', '%h', masterBase], { stdio: 'pipe' }).toString().trim();
+  magick([raw, '-fuzz', '30%', '-transparent', '#00FF00', '-trim', '+repage', '-resize', `130x${h}`, file]); // width capped so the wide swing is never cropped by the 160px cell
+  return file;
+}
+
 function buildSheet(entry) {
   const size = entry.frameSize;
   const k = size / 160;
@@ -133,6 +145,9 @@ function buildSheet(entry) {
   fs.mkdirSync(dir, { recursive: true });
   const base = path.join(TMP, `${entry.id}-base.png`);
   const placeholder = makeBase(entry, base);
+  // Optional real attack pose (art/raw/heroes/<id>-attack.png). Scaled to the master's height so the
+  // character keeps the same size; used on the attack/combo active frames.
+  const attackBase = makeAttackBase(entry, base);
 
   const rowFiles = [];
   const meta = {};
@@ -140,7 +155,8 @@ function buildSheet(entry) {
     const poses = POSES[entry.kind][a.name](a.frames);
     const frameFiles = poses.map((p, i) => {
       const f = path.join(TMP, `${entry.id}-${a.name}-${i}.png`);
-      renderFrame(base, p, size, k, f);
+      const useAttackPose = attackBase && (a.name === 'attack' || a.name === 'combo') && (a.active ?? []).includes(i);
+      renderFrame(useAttackPose ? attackBase : base, p, size, k, f);
       return f;
     });
     while (frameFiles.length < cols) {
