@@ -1,0 +1,94 @@
+{
+  "id": "kraken-lord",
+  "name": "Kraken Lord",
+  "kind": "boss",
+  "accent": "#1f5c7a",
+  "placeholder": true,
+  "sheet": "sheet.png",
+  "frameWidth": 256,
+  "frameHeight": 256,
+  "columns": 8,
+  "rows": 9,
+  "pivot": {
+    "x": 128,
+    "y": 249.6
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 6,
+      "fps": 6,
+      "loop": true,
+      "active": []
+    },
+    "move": {
+      "row": 1,
+      "frames": 8,
+      "fps": 8,
+      "loop": true,
+      "active": []
+    },
+    "basic": {
+      "row": 2,
+      "frames": 6,
+      "fps": 10,
+      "loop": false,
+      "active": [
+        2,
+        3
+      ]
+    },
+    "heavy": {
+      "row": 3,
+      "frames": 8,
+      "fps": 8,
+      "loop": false,
+      "active": [
+        4,
+        5
+      ]
+    },
+    "special": {
+      "row": 4,
+      "frames": 8,
+      "fps": 9,
+      "loop": false,
+      "active": [
+        3,
+        4,
+        5
+      ]
+    },
+    "aoe": {
+      "row": 5,
+      "frames": 8,
+      "fps": 9,
+      "loop": false,
+      "active": [
+        4,
+        5
+      ]
+    },
+    "hit": {
+      "row": 6,
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "active": []
+    },
+    "phase": {
+      "row": 7,
+      "frames": 6,
+      "fps": 8,
+      "loop": false,
+      "active": []
+    },
+    "defeat": {
+      "row": 8,
+      "frames": 8,
+      "fps": 7,
+      "loop": false,
+      "active": []
+    }
+  }
+}

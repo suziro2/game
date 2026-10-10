@@ -1,0 +1,56 @@
+{
+  "id": "wolf",
+  "name": "Wolf",
+  "kind": "enemy",
+  "accent": "#6d6f7a",
+  "placeholder": true,
+  "sheet": "sheet.png",
+  "frameWidth": 144,
+  "frameHeight": 144,
+  "columns": 8,
+  "rows": 5,
+  "pivot": {
+    "x": 72,
+    "y": 140.4
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 6,
+      "fps": 6,
+      "loop": true,
+      "active": []
+    },
+    "walk": {
+      "row": 1,
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "active": []
+    },
+    "attack": {
+      "row": 2,
+      "frames": 6,
+      "fps": 10,
+      "loop": false,
+      "active": [
+        2,
+        3
+      ]
+    },
+    "hit": {
+      "row": 3,
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "active": []
+    },
+    "death": {
+      "row": 4,
+      "frames": 8,
+      "fps": 8,
+      "loop": false,
+      "active": []
+    }
+  }
+}

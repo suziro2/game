@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Ashen Vow — a 2D anime action RPG across 10 chapters and 50 levels." />
+    <title>Ashen Vow</title>
+    <link rel="icon" href="data:," />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Loading screen: shown on start, between screens, chapter transitions, boss intros, and retries -->
+      <section id="loader" class="overlay" aria-live="polite" aria-busy="true" hidden>
+        <div class="loader-bg" aria-hidden="true"></div>
+        <div class="loader-hero" aria-hidden="true"><img id="loader-hero-img" alt="" /></div>
+        <div class="loader-panel">
+          <h1 class="logo">ASHEN<span>VOW</span></h1>
+          <p class="loader-subtitle" id="loader-subtitle">Awakening the realm…</p>
+          <div class="loader-indicator" aria-hidden="true"><div class="spinner"></div><div class="runes"></div></div>
+          <div class="progress" role="progressbar" aria-label="Loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="progress-fill" id="loader-fill"></div>
+          </div>
+          <div class="progress-row"><span id="loader-message">Preparing…</span><strong id="loader-percent">0%</strong></div>
+          <p class="tip" id="loader-tip"></p>
+          <div id="loader-error" class="loader-error" hidden>
+            <p id="loader-error-text"></p>
+            <div class="row-buttons">
+              <button id="loader-retry" class="btn primary" type="button">Retry</button>
+              <button id="loader-back" class="btn ghost" type="button" hidden>Back to Map</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Create Account (the only registration/entry screen; sessions restore automatically) -->
+      <section id="screen-auth" class="screen" hidden>
+        <div class="card auth-card">
+          <h1 class="logo small">ASHEN<span>VOW</span></h1>
+          <p class="muted">Create your hero's account to begin your journey. Your progress is saved on the server and restored automatically on this device.</p>
+          <form id="auth-form" novalidate>
+            <label>Username<input name="username" autocomplete="username" maxlength="16" required pattern="[A-Za-z0-9_]{3,16}" placeholder="3-16 letters, numbers, _" /></label>
+            <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="200" required placeholder="At least 8 characters" /></label>
+            <label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="200" required /></label>
+            <p class="form-error" id="auth-error" role="alert"></p>
+            <button class="btn primary wide" type="submit">Create Account & Begin</button>
+          </form>
+          <p class="fine">Sessions stay signed in for 30 days of activity. Clearing site data or using a private window starts a new account.</p>
+        </div>
+      </section>
+
+      <!-- Main menu: heroes, chapter map, upgrades, inventory -->
+      <section id="screen-menu" class="screen" hidden>
+        <header class="topbar">
+          <h1 class="logo small">ASHEN<span>VOW</span></h1>
+          <div class="stats">
+            <span>🪙 <b id="hud-coins">0</b></span>
+            <span>🧪 <b id="hud-potions">0</b></span>
+          </div>
+          <button class="btn ghost" id="btn-logout" type="button">Sign out</button>
+        </header>
+        <main class="menu-grid">
+          <aside class="card" id="panel-heroes">
+            <h2>Heroes</h2>
+            <div id="hero-list" class="hero-list"></div>
+          </aside>
+          <section class="card" id="panel-map">
+            <h2>Adventure Map</h2>
+            <div id="chapter-list" class="chapter-list"></div>
+          </section>
+          <aside class="card" id="panel-details">
+            <h2 id="detail-title">Hero</h2>
+            <div id="hero-detail"></div>
+            <h3>Upgrades</h3>
+            <div id="upgrades"></div>
+            <h3>Inventory</h3>
+            <div id="inventory"></div>
+          </aside>
+        </main>
+        <p class="status" id="menu-status" role="status"></p>
+      </section>
+
+      <!-- Level result overlay -->
+      <section id="screen-result" class="overlay" hidden>
+        <div class="card result-card">
+          <h2 id="result-title"></h2>
+          <p id="result-text"></p>
+          <div class="result-actions">
+            <button class="btn primary" id="result-next" type="button">Continue</button>
+            <button class="btn ghost" id="result-map" type="button">Adventure Map</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Boss introduction (shown before the boss battle starts) -->
+      <section id="screen-boss" class="overlay" hidden>
+        <div class="boss-intro">
+          <div class="boss-portrait" id="boss-portrait" aria-hidden="true"></div>
+          <div class="boss-text">
+            <p class="kicker">Boss Encounter</p>
+            <h2 id="boss-name"></h2>
+            <p id="boss-title"></p>
+            <button class="btn primary" id="boss-start" type="button">Face the Boss</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Phaser canvas container (battle only) -->
+      <div id="game-root" hidden></div>
+      <!-- Touch controls (battle only; shown on touch devices) -->
+      <div id="touch-controls" hidden>
+        <div class="dpad">
+          <button data-key="left" type="button" aria-label="Move left">◀</button>
+          <button data-key="right" type="button" aria-label="Move right">▶</button>
+          <button data-key="run" class="small-btn" type="button" aria-label="Toggle run">RUN</button>
+        </div>
+        <div class="actions">
+          <button data-key="potion" type="button" aria-label="Use potion">🧪</button>
+          <button data-key="dodge" type="button" aria-label="Dodge">DODGE</button>
+          <button data-key="skill" type="button" aria-label="Skill">SKILL</button>
+          <button data-key="attack" class="big" type="button" aria-label="Attack">ATK</button>
+          <button data-key="jump" type="button" aria-label="Jump">JUMP</button>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

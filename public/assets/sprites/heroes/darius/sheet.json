@@ -1,0 +1,98 @@
+{
+  "id": "darius",
+  "name": "Darius",
+  "kind": "hero",
+  "accent": "#9aa0ff",
+  "placeholder": false,
+  "sheet": "sheet.png",
+  "frameWidth": 160,
+  "frameHeight": 160,
+  "columns": 8,
+  "rows": 10,
+  "pivot": {
+    "x": 80,
+    "y": 156
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 6,
+      "fps": 6,
+      "loop": true,
+      "active": []
+    },
+    "walk": {
+      "row": 1,
+      "frames": 8,
+      "fps": 10,
+      "loop": true,
+      "active": []
+    },
+    "run": {
+      "row": 2,
+      "frames": 8,
+      "fps": 14,
+      "loop": true,
+      "active": []
+    },
+    "attack": {
+      "row": 3,
+      "frames": 6,
+      "fps": 14,
+      "loop": false,
+      "active": [
+        2,
+        3
+      ]
+    },
+    "combo": {
+      "row": 4,
+      "frames": 8,
+      "fps": 14,
+      "loop": false,
+      "active": [
+        2,
+        3,
+        6
+      ]
+    },
+    "skill": {
+      "row": 5,
+      "frames": 8,
+      "fps": 12,
+      "loop": false,
+      "active": [
+        3,
+        4
+      ]
+    },
+    "hit": {
+      "row": 6,
+      "frames": 4,
+      "fps": 12,
+      "loop": false,
+      "active": []
+    },
+    "dodge": {
+      "row": 7,
+      "frames": 5,
+      "fps": 16,
+      "loop": false,
+      "active": []
+    },
+    "defeat": {
+      "row": 8,
+      "frames": 8,
+      "fps": 8,
+      "loop": false,
+      "active": []
+    },
+    "victory": {
+      "row": 9,
+      "frames": 8,
+      "fps": 8,
+      "loop": false,
+      "active": []
+    }
+  }
+}

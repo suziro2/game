@@ -1,0 +1,34 @@
+{
+  "name": "ashen-vow",
+  "version": "1.0.0",
+  "description": "Ashen Vow \u2014 2D anime action RPG (Phaser 3)",
+  "scripts": {
+    "sprites": "node tools/build-sprites.mjs",
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "vite build",
+    "start": "node server/server.mjs",
+    "check": "npm test && vite build",
+    "test": "node tests/check-assets.mjs && node tests/progress.test.mjs && node tests/api.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/suziro2/game.git"
+  },
+  "keywords": [
+    "phaser",
+    "game",
+    "rpg"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/suziro2/game/issues"
+  },
+  "homepage": "https://github.com/suziro2/game#readme",
+  "dependencies": {
+    "phaser": "^3.90.0",
+    "vite": "^5.4.21"
+  },
+  "private": true,
+  "type": "module"
+}
