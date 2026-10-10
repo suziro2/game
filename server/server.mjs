@@ -72,13 +72,20 @@ function parseCookies(req) {
   (req.headers.cookie || '').split(';').forEach((p) => { const i = p.indexOf('='); if (i > 0) out[p.slice(0, i).trim()] = decodeURIComponent(p.slice(i + 1).trim()); });
   return out;
 }
+/* The game is normally shown inside another site's iframe (the live preview). Browsers only send
+ * SameSite=Lax cookies in same-site requests, so there the session cookie must be SameSite=None; Secure.
+ * Plain http://localhost development keeps Lax, because browsers reject Secure cookies over http. */
+const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+function cookieAttrs(req) {
+  const https = req.headers['x-forwarded-proto'] === 'https' || req.socket.encrypted === true;
+  const crossSiteCapable = https || !LOCAL_HOST.test(req.headers.host || '');
+  return crossSiteCapable ? 'SameSite=None; Secure' : 'SameSite=Lax';
+}
 function setSessionCookie(req, res, token) {
-  const secure = req.headers['x-forwarded-proto'] === 'https' || (req.socket.encrypted === true);
-  const parts = [`${SESSION_COOKIE}=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', `Max-Age=${SESSION_MS / 1000}`];
-  if (secure) parts.push('Secure');
+  const parts = [`${SESSION_COOKIE}=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', cookieAttrs(req), `Max-Age=${SESSION_MS / 1000}`];
   res.setHeader('Set-Cookie', parts.join('; '));
 }
-function clearSessionCookie(res) { res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`); }
+function clearSessionCookie(req, res) { res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; ${cookieAttrs(req)}; Max-Age=0`); }
 
 const SESSION_GRACE_MS = Number(process.env.ASHEN_SESSION_GRACE_MS ?? 30_000);
 /** Issues a new session token and stores only its hash. */
@@ -95,7 +102,7 @@ function resolveSession(req, res) {
   const key = sha256(token);
   const s = store.sessions[key];
   if (!s || s.expires < Date.now() || !store.users[s.userId]) {
-    delete store.sessions[key]; persist(); clearSessionCookie(res); return null;
+    delete store.sessions[key]; persist(); clearSessionCookie(req, res); return null;
   }
   // Rotate the token to limit replay of stolen tokens. The old token stays valid for a short grace
   // window so requests already in flight with it (e.g. overlapping saves) do not log the player out.
@@ -229,7 +236,7 @@ async function api(req, res, url) {
   if (url.pathname === '/api/logout' && req.method === 'POST') {
     const token = parseCookies(req)[SESSION_COOKIE];
     if (token) { delete store.sessions[sha256(token)]; persist(); }
-    clearSessionCookie(res);
+    clearSessionCookie(req, res);
     return json(res, 200, { ok: true });
   }
 
