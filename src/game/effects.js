@@ -65,3 +65,24 @@ export function playFx(scene, name, x, y, { tint = 0xffffff, scale = 1, flip = f
   s.once('animationcomplete', () => s.destroy());
   return s;
 }
+
+/**
+ * Motion trail for an attack: a tinted copy of the fighter's current frame that drifts forward and fades.
+ * The attack sheets only shift slightly between frames, so this makes the swing/lunge clearly visible.
+ */
+export function afterimage(scene, sprite, { tint = 0xffffff, dx = 0, dur = 280, alpha = 0.6 } = {}) {
+  if (!sprite || !sprite.texture || !sprite.frame) return null;
+  const g = scene.add.sprite(sprite.x, sprite.y, sprite.texture.key, sprite.frame.name)
+    .setOrigin(sprite.originX, sprite.originY)
+    .setScale(sprite.scaleX, sprite.scaleY)
+    .setFlipX(sprite.flipX)
+    .setTint(tint)
+    .setAlpha(alpha)
+    .setDepth(sprite.depth - 1)
+    .setBlendMode(Phaser.BlendModes.ADD);
+  scene.tweens.add({
+    targets: g, x: g.x + dx, alpha: 0, scaleX: g.scaleX * 1.08, scaleY: g.scaleY * 1.04,
+    duration: dur, ease: 'Quad.easeOut', onComplete: () => g.destroy(),
+  });
+  return g;
+}

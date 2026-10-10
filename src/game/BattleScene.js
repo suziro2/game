@@ -7,7 +7,7 @@
 import Phaser from 'phaser';
 import { Hero, Enemy, Boss, GROUND, overlap } from './fighters.js';
 import { ENEMIES, BOSSES, CHAPTERS, rollEquipment } from '../data/game-data.js';
-import { ensureEffectTextures, orbTexture, burst, shockwave, floatText, flash, shake, playFx } from './effects.js';
+import { ensureEffectTextures, orbTexture, burst, shockwave, floatText, flash, shake, playFx, afterimage } from './effects.js';
 import { touch, consumeTouch, resetTouch } from './input.js';
 
 const { JustDown } = Phaser.Input.Keyboard;
@@ -264,9 +264,18 @@ export class BattleScene extends Phaser.Scene {
 
   heroMelee(hero, mul) {
     const box = hero.frontBox(hero.stats.reach, 130, 0);
-    playFx(this, 'slash', hero.x + hero.facing * 60, GROUND - hero.z - 85, {
-      tint: hero.stats.accent, scale: mul > 1 ? 1.5 : 1.15, flip: hero.facing < 0,
+    const combo = mul > 1;
+    // Visible attack sprite: a motion trail of the hero plus a large accent-colored weapon arc.
+    afterimage(this, hero.sprite, { tint: hero.stats.accent, dx: hero.facing * (combo ? 70 : 48) });
+    playFx(this, 'slash', hero.x + hero.facing * (combo ? 95 : 75), GROUND - hero.z - (combo ? 118 : 102), {
+      tint: hero.stats.accent, scale: combo ? 1.7 : 1.35, flip: hero.facing < 0,
     });
+    if (combo) {
+      // The finisher lands a second, white arc a moment later.
+      this.time.delayedCall(120, () => playFx(this, 'slash', hero.x + hero.facing * 80, GROUND - hero.z - 84, {
+        tint: 0xffffff, scale: 1.5, flip: hero.facing < 0,
+      }));
+    }
     for (const t of this.targets()) {
       if (hero.hitIds.has(t) || !overlap(box, t.box)) continue;
       hero.hitIds.add(t);
@@ -297,6 +306,11 @@ export class BattleScene extends Phaser.Scene {
   enemyMelee(enemy, reach, dmg) {
     const box = enemy.frontBox(reach, 110, 0);
     const hero = this.hero;
+    // Enemy attack sprite: red motion trail and a red strike arc (shown even when the attack misses).
+    afterimage(this, enemy.sprite, { tint: 0xff4040, dx: enemy.facing * 46, alpha: 0.55 });
+    playFx(this, 'slash', enemy.x + enemy.facing * 70, GROUND - enemy.z - 100, {
+      tint: 0xff4a4a, scale: 1.15, flip: enemy.facing < 0,
+    });
     if (hero.dead || !overlap(box, hero.box)) return;
     this.hitHero(dmg * (0.9 + Math.random() * 0.2), enemy.x);
   }
@@ -325,7 +339,8 @@ export class BattleScene extends Phaser.Scene {
 
   bossMelee(boss, reach, dmg, kind) {
     const box = boss.frontBox(reach, 200, 0);
-    playFx(this, 'slash', boss.x + boss.facing * 90, GROUND - 130, { tint: 0xff8a6a, scale: 2.2, flip: boss.facing < 0 });
+    afterimage(this, boss.sprite, { tint: 0xff6a4a, dx: boss.facing * 70, dur: 340, alpha: 0.5 });
+    playFx(this, 'slash', boss.x + boss.facing * 90, GROUND - 130, { tint: 0xff8a6a, scale: 1.9, flip: boss.facing < 0 });
     if (kind === 'heavy') shake(this, 260, 0.008);
     if (!this.hero.dead && overlap(box, this.hero.box)) this.hitHero(dmg * (0.9 + Math.random() * 0.2), boss.x);
   }
