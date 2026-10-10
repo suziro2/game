@@ -3,7 +3,7 @@
   "name": "Elite Undead",
   "kind": "enemy",
   "accent": "#5b6470",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

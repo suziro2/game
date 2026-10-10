@@ -3,7 +3,7 @@
   "name": "Sand Scorpion",
   "kind": "enemy",
   "accent": "#c8962e",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

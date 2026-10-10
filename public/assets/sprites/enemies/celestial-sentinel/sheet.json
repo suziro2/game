@@ -3,7 +3,7 @@
   "name": "Celestial Sentinel",
   "kind": "enemy",
   "accent": "#fff0b0",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

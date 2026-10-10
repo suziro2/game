@@ -3,7 +3,7 @@
   "name": "Corrupted Warrior",
   "kind": "enemy",
   "accent": "#6b2f5a",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,

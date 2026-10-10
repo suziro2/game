@@ -3,7 +3,7 @@
   "name": "Poisonous Creature",
   "kind": "enemy",
   "accent": "#7ac943",
-  "placeholder": true,
+  "placeholder": false,
   "sheet": "sheet.png",
   "frameWidth": 144,
   "frameHeight": 144,
