@@ -31,7 +31,13 @@ async function saveNow() {
     state.progress = r.progress;
     setStatus('Progress saved.');
   } catch (e) {
-    if (e.status === 401) { setStatus('Your session expired. Please create a new account.'); ui.showAuth(authHandlers); return; }
+    // The server did not accept this browser's session (e.g. the preview iframe blocks cookies/storage).
+    // Do not interrupt play: keep the progress in memory, tell the player, and retry in the background.
+    if (e.status === 401) {
+      setStatus('Progress is not saving in this browser. You can keep playing; open the game in a new tab to sync it.');
+      saveTimer = setTimeout(saveNow, 15000);
+      return;
+    }
     setStatus(`Save failed (${e.message}). Retrying…`);
     saveTimer = setTimeout(saveNow, 5000);
   } finally {
