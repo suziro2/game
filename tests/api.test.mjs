@@ -106,11 +106,24 @@ try {
   const body = JSON.stringify({ progress: sess.progress });
   const results = await Promise.all([1, 2, 3, 4].map(() => fetch(base + '/api/save', { method: 'PUT', headers: { ...H, Cookie: loginCookie }, body }).then((x) => x.status)));
   assert.deepEqual(results, [200, 200, 200, 200], 'concurrent saves must all succeed');
+  // 10d. bearer-token fallback: works with no cookie at all (cookie-blocking browsers in the preview iframe)
+  r = await post('/api/login', { username: 'hero_one', password: 'correct horse' });
+  const bearer = r.headers.get('x-session-token');
+  assert.ok(bearer, 'login must return the session token in X-Session-Token');
+  const auth = { Authorization: `Bearer ${bearer}` };
+  const viaBearer = await (await fetch(base + '/api/session', { headers: auth })).json();
+  assert.equal(viaBearer.authenticated, true, 'bearer token must restore the session');
+  const rotatedBearer = (await fetch(base + '/api/session', { headers: auth })).headers.get('x-session-token');
+  assert.ok(rotatedBearer && rotatedBearer !== bearer, 'token rotates on restore');
+  r = await fetch(base + '/api/save', { method: 'PUT', headers: { ...H, Authorization: `Bearer ${rotatedBearer}` }, body: JSON.stringify({ progress: viaBearer.progress }) });
+  assert.equal(r.status, 200, 'save with bearer token must succeed');
+  r = await fetch(base + '/api/logout', { method: 'POST', headers: { ...H, Authorization: `Bearer ${(r.headers.get('x-session-token') || rotatedBearer)}` } });
+  assert.equal(r.status, 200);
   // 11. logout ends the session
   r = await fetch(base + '/api/logout', { method: 'POST', headers: H });
   assert.equal(r.status, 200);
   srv2.kill();
-  console.log('ok   account creation, validation, CSRF, session rotation, save/load, persistence, login, logout');
+  console.log('ok   account creation, validation, CSRF, session rotation, save/load, persistence, login, bearer fallback, logout');
   console.log('API tests passed.');
   process.exit(0);
 } catch (e) {

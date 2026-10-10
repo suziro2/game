@@ -81,7 +81,17 @@ function cookieAttrs(req) {
   const crossSiteCapable = https || !LOCAL_HOST.test(req.headers.host || '');
   return crossSiteCapable ? 'SameSite=None; Secure' : 'SameSite=Lax';
 }
+/* Session token from the cookie, or from an Authorization: Bearer header. The bearer path is a fallback
+ * for browsers that block cookies inside the preview iframe; the client stores the token it receives in
+ * X-Session-Token and sends it back. Cross-site pages cannot send this header without CORS, so it is safe. */
+function sessionToken(req) {
+  const c = parseCookies(req)[SESSION_COOKIE];
+  if (c) return c;
+  const a = req.headers.authorization || '';
+  return a.startsWith('Bearer ') ? a.slice(7).trim() : undefined;
+}
 function setSessionCookie(req, res, token) {
+  res.setHeader('X-Session-Token', token);
   const parts = [`${SESSION_COOKIE}=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', cookieAttrs(req), `Max-Age=${SESSION_MS / 1000}`];
   res.setHeader('Set-Cookie', parts.join('; '));
 }
@@ -97,7 +107,7 @@ function createSession(userId) {
 }
 /** Returns the user for a valid session, sliding its expiry and rotating the token. */
 function resolveSession(req, res) {
-  const token = parseCookies(req)[SESSION_COOKIE];
+  const token = sessionToken(req);
   if (!token) return null;
   const key = sha256(token);
   const s = store.sessions[key];
@@ -234,7 +244,7 @@ async function api(req, res, url) {
   }
 
   if (url.pathname === '/api/logout' && req.method === 'POST') {
-    const token = parseCookies(req)[SESSION_COOKIE];
+    const token = sessionToken(req);
     if (token) { delete store.sessions[sha256(token)]; persist(); }
     clearSessionCookie(req, res);
     return json(res, 200, { ok: true });
