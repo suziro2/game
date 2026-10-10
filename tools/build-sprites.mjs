@@ -126,15 +126,25 @@ function makeBase(entry, file) {
   return true;
 }
 
-/** Real attack-pose base for heroes that have one, scaled to the master base's height. Returns null otherwise. */
-function makeAttackBase(entry, masterBase) {
+/** Optional real pose art for a hero (art/raw/heroes/<id>-<pose>.png), scaled to the master's height. */
+function makePoseBase(entry, masterBase, pose) {
   if (entry.kind !== 'hero') return null;
-  const raw = path.join(RAW, 'heroes', `${entry.id}-attack.png`);
+  const raw = path.join(RAW, 'heroes', `${entry.id}-${pose}.png`);
   if (!fs.existsSync(raw)) return null;
-  const file = path.join(TMP, `${entry.id}-attack-base.png`);
+  const file = path.join(TMP, `${entry.id}-${pose}-base.png`);
   const h = execFileSync('identify', ['-format', '%h', masterBase], { stdio: 'pipe' }).toString().trim();
-  magick([raw, '-fuzz', '30%', '-transparent', '#00FF00', '-trim', '+repage', '-resize', `130x${h}`, file]); // width capped so the wide swing is never cropped by the 160px cell
+  // Width is capped so wide swings and stride poses are never cropped by the 160px cell.
+  magick([raw, '-fuzz', '30%', '-transparent', '#00FF00', '-trim', '+repage', '-resize', `130x${h}`, file]);
   return file;
+}
+
+/** Which pose image (if any) a frame uses. Attack active frames, walk cycle contacts, and idle breath peak. */
+function poseFor(entry, a, i) {
+  if (entry.kind !== 'hero') return null;
+  if ((a.name === 'attack' || a.name === 'combo') && (a.active ?? []).includes(i)) return 'attack';
+  if (a.name === 'walk') return { 0: 'walk-a', 2: 'walk-b', 4: 'walk-a', 6: 'walk-b' }[i] ?? null;
+  if (a.name === 'idle') return (i === 2 || i === 3) ? 'idle' : null;
+  return null;
 }
 
 function buildSheet(entry) {
@@ -145,9 +155,8 @@ function buildSheet(entry) {
   fs.mkdirSync(dir, { recursive: true });
   const base = path.join(TMP, `${entry.id}-base.png`);
   const placeholder = makeBase(entry, base);
-  // Optional real attack pose (art/raw/heroes/<id>-attack.png). Scaled to the master's height so the
-  // character keeps the same size; used on the attack/combo active frames.
-  const attackBase = makeAttackBase(entry, base);
+  // Optional real pose art per hero (idle / walk / attack). Matched to the master's height.
+  const poseBases = Object.fromEntries(['attack', 'idle', 'walk-a', 'walk-b'].map((n) => [n, makePoseBase(entry, base, n)]));
 
   const rowFiles = [];
   const meta = {};
@@ -155,8 +164,8 @@ function buildSheet(entry) {
     const poses = POSES[entry.kind][a.name](a.frames);
     const frameFiles = poses.map((p, i) => {
       const f = path.join(TMP, `${entry.id}-${a.name}-${i}.png`);
-      const useAttackPose = attackBase && (a.name === 'attack' || a.name === 'combo') && (a.active ?? []).includes(i);
-      renderFrame(useAttackPose ? attackBase : base, p, size, k, f);
+      const pose = poseFor(entry, a, i);
+      renderFrame(pose && poseBases[pose] ? poseBases[pose] : base, p, size, k, f);
       return f;
     });
     while (frameFiles.length < cols) {
