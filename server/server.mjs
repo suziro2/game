@@ -47,6 +47,14 @@ const hashPassword = (pw) => new Promise((res, rej) => {
   const salt = crypto.randomBytes(16);
   crypto.scrypt(pw, salt, 64, { N: 16384, r: 8, p: 1 }, (e, key) => (e ? rej(e) : res(`scrypt$${salt.toString('base64')}$${key.toString('base64')}`)));
 });
+/** Checks a password against a stored "scrypt$salt$key" hash in constant time. */
+const verifyPassword = (pw, stored) => new Promise((res) => {
+  const [scheme, saltB64, keyB64] = String(stored || '').split('$');
+  if (scheme !== 'scrypt' || !saltB64 || !keyB64) return res(false);
+  const expected = Buffer.from(keyB64, 'base64');
+  crypto.scrypt(pw, Buffer.from(saltB64, 'base64'), expected.length, { N: 16384, r: 8, p: 1 }, (e, key) =>
+    res(!e && key.length === expected.length && crypto.timingSafeEqual(key, expected)));
+});
 function json(res, status, body, headers = {}) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers });
   res.end(JSON.stringify(body));
@@ -147,6 +155,14 @@ function rateLimited(ip) {
   arr.push(now); regHits.set(ip, arr); return arr.length > 10;
 }
 
+/* ---------- rate limit for failed logins ---------- */
+const loginFails = new Map();
+function loginBlocked(ip) {
+  const now = Date.now(); const arr = (loginFails.get(ip) || []).filter((t) => now - t < 900_000);
+  loginFails.set(ip, arr); return arr.length >= 10;
+}
+function recordLoginFail(ip) { loginFails.set(ip, [...(loginFails.get(ip) || []), Date.now()]); }
+
 /* ---------- API ---------- */
 async function api(req, res, url) {
   // Same-origin check for state-changing requests (defence in depth on top of SameSite=Lax).
@@ -178,6 +194,23 @@ async function api(req, res, url) {
     setSessionCookie(req, res, token);
     persist();
     return json(res, 201, { user: { id, username }, progress: sanitizeProgress(store.users[id].progress) });
+  }
+
+  if (url.pathname === '/api/login' && req.method === 'POST') {
+    const ip = req.socket.remoteAddress;
+    if (loginBlocked(ip)) return json(res, 429, { error: 'Too many failed attempts. Please wait 15 minutes and try again.' });
+    const body = await readBody(req).catch((e) => ({ __err: e }));
+    if (body.__err) return json(res, body.__err.status || 400, { error: 'Invalid request.' });
+    const username = String(body.username || '').trim();
+    const password = String(body.password || '');
+    const user = Object.values(store.users).find((u) => u.username.toLowerCase() === username.toLowerCase());
+    // Always run one hash check so timing does not reveal whether the username exists.
+    const ok = await verifyPassword(password.slice(0, 200), user ? user.passwordHash : 'scrypt$AAAAAAAAAAAAAAAAAAAAAA==$AAAA');
+    if (!user || !ok || password.length < 1) { recordLoginFail(ip); return json(res, 401, { error: 'Wrong username or password.' }); }
+    loginFails.delete(ip);
+    const token = createSession(user.id);
+    setSessionCookie(req, res, token);
+    return json(res, 200, { user: { id: user.id, username: user.username }, progress: sanitizeProgress(user.progress) });
   }
 
   if (url.pathname === '/api/save' && req.method === 'PUT') {

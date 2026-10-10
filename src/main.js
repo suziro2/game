@@ -26,7 +26,7 @@ async function saveNow() {
     state.progress = r.progress;
     setStatus('Progress saved.');
   } catch (e) {
-    if (e.status === 401) { setStatus('Your session expired. Please create a new account.'); ui.showAuth(onCreateAccount); return; }
+    if (e.status === 401) { setStatus('Your session expired. Please create a new account.'); ui.showAuth(authHandlers); return; }
     setStatus(`Save failed (${e.message}). Retrying…`);
     saveTimer = setTimeout(saveNow, 5000);
   }
@@ -66,10 +66,27 @@ async function boot() {
     } else {
       loader.setProgress(1, 'Ready');
       await loader.hide();
-      ui.showAuth(onCreateAccount);
+      ui.showAuth(authHandlers);
     }
   } catch (e) {
     loader.showError(e.message, boot);
+  }
+}
+
+const authHandlers = { onCreate: onCreateAccount, onLogin: onLogin };
+
+async function onLogin(username, password) {
+  loader.show({ subtitle: 'Welcome back', message: 'Opening your adventure…', tip: randomTip() });
+  try {
+    const r = await api.login(username, password);
+    loader.setProgress(0.6, 'Restoring your profile…');
+    state = { user: r.user, progress: r.progress || newProgress() };
+    loader.setProgress(1, `Welcome back, ${r.user.username}`);
+    await loader.hide();
+    showMenu();
+  } catch (e) {
+    await loader.hide();
+    throw e;
   }
 }
 

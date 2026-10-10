@@ -85,11 +85,24 @@ try {
   assert.equal(again.authenticated, true);
   assert.equal(again.progress.coins, 500);
   assert.equal(again.progress.selectedHero, 'luna');
+  // 10b. login: wrong password and unknown user are rejected, correct credentials restore the saved profile
+  const post = (pathname, body) => fetch(base + pathname, { method: 'POST', headers: H, body: JSON.stringify(body) });
+  r = await post('/api/login', { username: 'hero_one', password: 'wrong password' });
+  assert.equal(r.status, 401);
+  r = await post('/api/login', { username: 'nobody_here', password: 'correct horse' });
+  assert.equal(r.status, 401);
+  r = await post('/api/login', { username: 'HERO_ONE', password: 'correct horse' });
+  assert.equal(r.status, 200, 'login should be case-insensitive on username');
+  const loginCookie = cookieOf(r);
+  assert.match(r.headers.get('set-cookie'), /HttpOnly/);
+  const loggedIn = await (await fetch(base + '/api/session', { headers: { Cookie: loginCookie } })).json();
+  assert.equal(loggedIn.authenticated, true);
+  assert.equal(loggedIn.progress.coins, 500);
   // 11. logout ends the session
   r = await fetch(base + '/api/logout', { method: 'POST', headers: H });
   assert.equal(r.status, 200);
   srv2.kill();
-  console.log('ok   account creation, validation, CSRF, session rotation, save/load, persistence, logout');
+  console.log('ok   account creation, validation, CSRF, session rotation, save/load, persistence, login, logout');
   console.log('API tests passed.');
   process.exit(0);
 } catch (e) {

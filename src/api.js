@@ -29,6 +29,7 @@ async function request(method, url, body) {
 export const api = {
   session: () => request('GET', '/api/session'),
   createAccount: (username, password) => request('POST', '/api/account', { username, password }),
+  login: (username, password) => request('POST', '/api/login', { username, password }),
   save: (progress) => request('PUT', '/api/save', { progress }),
   logout: () => request('POST', '/api/logout', {}),
 };

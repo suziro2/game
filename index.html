@@ -36,13 +36,17 @@
       <section id="screen-auth" class="screen" hidden>
         <div class="card auth-card">
           <h1 class="logo small">ASHEN<span>VOW</span></h1>
-          <p class="muted">Create your hero's account to begin your journey. Your progress is saved on the server and restored automatically on this device.</p>
+          <div class="auth-mode" role="tablist">
+            <button type="button" id="mode-login" class="btn" role="tab" aria-selected="false">Log in</button>
+            <button type="button" id="mode-create" class="btn primary" role="tab" aria-selected="true">Create account</button>
+          </div>
+          <p class="muted" id="auth-intro">Create your hero's account to begin your journey. Your progress is saved on the server and restored automatically on this device.</p>
           <form id="auth-form" novalidate>
             <label>Username<input name="username" autocomplete="username" maxlength="16" required pattern="[A-Za-z0-9_]{3,16}" placeholder="3-16 letters, numbers, _" /></label>
             <label>Password<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="200" required placeholder="At least 8 characters" /></label>
-            <label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="200" required /></label>
+            <label id="confirm-field">Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="8" maxlength="200" required /></label>
             <p class="form-error" id="auth-error" role="alert"></p>
-            <button class="btn primary wide" type="submit">Create Account & Begin</button>
+            <button class="btn primary wide" type="submit" id="auth-submit">Create Account & Begin</button>
           </form>
           <p class="fine">Sessions stay signed in for 30 days of activity. Clearing site data or using a private window starts a new account.</p>
         </div>

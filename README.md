@@ -72,6 +72,7 @@ Accounts and saves are stored in `server/data/store.json` (git-ignored).
 ## Known limits
 
 - No audio is bundled yet (the loader and pipeline are ready for it).
-- Session recovery relies on a 30-day HttpOnly cookie; there is no separate login page by design.
-  Clearing site data starts a new account.
+- Session recovery relies on a 30-day HttpOnly cookie. The auth screen has two modes on one page:
+  **Log in** (username + password, `POST /api/login`, 10 failed attempts per IP per 15 minutes) and
+  **Create account** (the only registration form). Clearing site data requires logging in again.
 - Progression rules are validated for shape on the server, not simulated for gameplay.

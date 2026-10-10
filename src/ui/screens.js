@@ -28,10 +28,34 @@ export function portrait(el, kind, id, size) {
   el.classList.add('portrait');
 }
 
-/* ---------- Create Account ---------- */
-export function showAuth(onSubmit) {
+/* ---------- Log in / Create Account (one screen, two modes) ---------- */
+/** Shows the auth screen. `handlers` = { onCreate(u, p), onLogin(u, p) }. Mode is chosen with the toggle. */
+export function showAuth(handlers) {
   showScreen('screen-auth');
   const form = $('auth-form');
+  const btnLogin = $('mode-login');
+  const btnCreate = $('mode-create');
+  const submit = $('auth-submit');
+  let mode = 'create';
+
+  const setMode = (m) => {
+    mode = m;
+    const login = m === 'login';
+    btnLogin.classList.toggle('primary', login); btnLogin.setAttribute('aria-selected', String(login));
+    btnCreate.classList.toggle('primary', !login); btnCreate.setAttribute('aria-selected', String(!login));
+    $('confirm-field').hidden = login;
+    $('confirm-field').querySelector('input').required = !login;
+    form.querySelector('input[name=password]').autocomplete = login ? 'current-password' : 'new-password';
+    submit.textContent = login ? 'Log In & Continue' : 'Create Account & Begin';
+    $('auth-intro').textContent = login
+      ? 'Welcome back. Enter the username and password of your existing hero.'
+      : "Create your hero's account to begin your journey. Your progress is saved on the server and restored automatically on this device.";
+    $('auth-error').textContent = '';
+  };
+  btnLogin.onclick = () => setMode('login');
+  btnCreate.onclick = () => setMode('create');
+  setMode('create');
+
   form.onsubmit = async (e) => {
     e.preventDefault();
     const f = new FormData(form);
@@ -41,13 +65,16 @@ export function showAuth(onSubmit) {
     const err = $('auth-error');
     err.textContent = '';
     if (!/^[A-Za-z0-9_]{3,16}$/.test(u)) return (err.textContent = 'Username must be 3-16 letters, numbers or underscores.');
-    if (p.length < 8) return (err.textContent = 'Password must be at least 8 characters.');
-    if (p !== c) return (err.textContent = 'Passwords do not match.');
-    const btn = form.querySelector('button');
-    btn.disabled = true;
-    try { await onSubmit(u, p); }
+    if (mode === 'login') {
+      if (!p) return (err.textContent = 'Enter your password.');
+    } else {
+      if (p.length < 8) return (err.textContent = 'Password must be at least 8 characters.');
+      if (p !== c) return (err.textContent = 'Passwords do not match.');
+    }
+    submit.disabled = true;
+    try { await (mode === 'login' ? handlers.onLogin(u, p) : handlers.onCreate(u, p)); }
     catch (ex) { err.textContent = ex.message; }
-    finally { btn.disabled = false; }
+    finally { submit.disabled = false; }
   };
 }
 
